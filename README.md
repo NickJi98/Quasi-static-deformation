@@ -3,7 +3,7 @@ Modeling the quasi-static deformation of a layered elastic medium under surface 
 
 Author: Qing Ji, Stanford University (qingji@stanford.edu)
 
-Still updating ...
+A better summary and more instructions are upcoming!
 
 
 ## MATLAB scripts
