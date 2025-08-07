@@ -6,7 +6,7 @@ Author: Qing Ji, Stanford University (qingji@stanford.edu)
 Still updating ...
 
 
-# MATLAB packages
+## MATLAB scripts
 
 I use MATLAB Parallel Computing Toolbox to convert loops into the parallel version (i.e., 'parfor' instead of 'for' loop). You may install this toolbox, or just simply replace all 'parfor' loop with 'for' loop in functions solve_ds and solve_coeff
 
