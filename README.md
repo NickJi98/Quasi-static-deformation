@@ -26,12 +26,12 @@ This repository contains MATLAB scripts and functions for modeling the deformati
 - **`test_halfspace_xyz.m`** — Benchmark against Boussinesq solution (point load over elastic halfspace)
 - **`main_example.m`** — Example workflow and inputs
 
-### 2. MATLAB Functions (`./my_func`)
+### 2. MATLAB Functions (`./src`)
 - **`solve_ds.m`**, **`calc_layer.m`** — Core propagator matrix method
 - **`create_psfc.m`** — Example surface pressure loading (Gaussian, pressure wave, turbulent pressure, Delta load)
 - **Plotting:** `plot_2d.m`, `plot_comps_2d.m`, `plot_compare_2d.m`
 
-### 3. Data (`./my_data`)
+### 3. Data (`./data`)
 - **`rwb_cb.mat`** — Red-white-blue colorbar  
 - **`vel_model.csv`** — Example layered medium over halfspace  
 - **`cm1out.nc`** — Turbulent pressure field from large eddy simulation  
@@ -42,8 +42,6 @@ This repository contains MATLAB scripts and functions for modeling the deformati
 ## Notes
 
 The propagator matrix method uses a spatial horizontal Fourier transform, making it ideal for **periodic loading**.  
-For concentrated loads, set the spatial domain **much larger** than the loaded area.
+For concentrated loads, set the spatial domain much larger than the loaded area.
 
-The method neglects the **DC component** (`k = 0`).  
-A uniform load over an infinite halfspace results only in a rigid offset of the top surface, which is excluded from the computation.
-Details of the propagator matrix method can be found in [Method.pdf](./Method.pdf).
+The solution neglects the zero-wavenumber component (`k = 0`). Details of the propagator matrix method can be found in [Method.pdf](./Method.pdf).
