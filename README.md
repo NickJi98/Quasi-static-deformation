@@ -3,13 +3,12 @@ Modeling the quasi-static deformation of a layered elastic medium under surface 
 
 Author: Qing Ji, Stanford University (qingji@stanford.edu)
 
-Still updating ...
+A better summary and more instructions are upcoming!
 
 
-MATLAB packages:
+## MATLAB scripts
 
 I use MATLAB Parallel Computing Toolbox to convert loops into the parallel version (i.e., 'parfor' instead of 'for' loop). You may install this toolbox, or just simply replace all 'parfor' loop with 'for' loop in functions solve_ds and solve_coeff
-
 
 
 1. Scripts
