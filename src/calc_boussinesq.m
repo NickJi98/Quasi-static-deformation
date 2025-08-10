@@ -27,7 +27,7 @@ function output = calc_boussinesq(mesh, elast_prop, coord)
 
 
     %%% Boussinesq solution %%%
-    % Coordinate system: +z-direction upward
+    % Vertical displacement: Positive for upward motion
     % Stress convention: Positive for tensile stress
 
     % Displacement [μm]

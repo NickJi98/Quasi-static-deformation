@@ -13,7 +13,7 @@ mesh.Nx = 256;  mesh.dx = 0.02;
 mesh.Ny = 256;  mesh.dy = 0.02;
 
 % Source: Point load from white spectrum
-% Unit: Pa, positive pressure for pushing downward
+% Unit: Pa, positive for downward normal traction
 src = create_psfc(4, mesh, []);
 
 % Source: Gaussian load
@@ -60,14 +60,15 @@ sol_bsnq = calc_boussinesq(mesh, hs_prop, 'xyz');
 
 %% Seismic modeling (Layered medium)
 
-% Solve displacement-stress vector toward the surface
-ds_pm = solve_ds(src, elast_prop, zq);
+% Depth query points
+src.depth_query = 1;  src.zq = zq;
 
-% Evaluate coefficients at the surface
-coeff_pm = solve_coeff(src, ds_pm);
+% Output stress fields
+src.include_stress = 1;
 
-% Numerical solution
-sol_pm = calc_layer(ds_pm, coeff_pm, 'xyz', true);
+% Quasi-static modeling result
+% (Now positive upward for vertical displ. to compare with Boussinesq solution)
+[sol_pm, ~] = qs_model(src, elast_prop);  sol_pm.uz = -sol_pm.uz;
 
 % Add an offset for comparison
 % (the mean of Boussinesq solution in this domain)
@@ -81,7 +82,7 @@ clear tmp1 tmp2;
 %% Comparison on a horizontal plane: 2D plots
 
 % Depth index (ind_z = 1 for surface z = 0)
-ind_z = 1;  fprintf('Depth: %g km\n', sol_pm.z(ind_z));
+ind_z = 3;  fprintf('Depth: %g km\n', sol_pm.zq(ind_z));
 
 % Compare displacement components
 plot_compare_2d(sol_bsnq, sol_pm, 'disp', ind_z);

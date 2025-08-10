@@ -46,42 +46,42 @@ function plot_compare_disp(sol_bsnq, sol_pm, iz)
     nexttile(1);  plot_var = sol_bsnq.uz(:,:,iz);
     ax_prop.title = 'Vertical';
     ax_prop.cmax = max(abs(plot_var), [], 'all') / cb_clip;
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(4);  plot_var = sol_pm.uz(:,:,iz);
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(2);  plot_var = sol_bsnq.ux(:,:,iz);
     ax_prop.title = 'X-dir';
     ax_prop.cmax = max(abs(plot_var), [], 'all') / cb_clip;
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(5);  plot_var = sol_pm.ux(:,:,iz);
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(3);  plot_var = sol_bsnq.uy(:,:,iz);
     ax_prop.title = 'Y-dir';
     ax_prop.cmax = max(abs(plot_var), [], 'all') / cb_clip;
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(6);  plot_var = sol_pm.uy(:,:,iz);
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     %%% Difference of displacement %%%
     nexttile(7);  plot_var = sol_bsnq.uz(:,:,iz) - sol_pm.uz(:,:,iz);
     ax_prop.title = 'Diff. (Vertical)';
     ax_prop.cmax = max(abs(plot_var), [], 'all');
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(8);  plot_var = sol_bsnq.ux(:,:,iz) - sol_pm.ux(:,:,iz);
     ax_prop.title = 'Diff. (X-dir)';
     ax_prop.cmax = max(abs(plot_var), [], 'all');
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(9);  plot_var = sol_bsnq.uy(:,:,iz) - sol_pm.uy(:,:,iz);
     ax_prop.title = 'Diff. (Y-dir)';
     ax_prop.cmax = max(abs(plot_var), [], 'all');
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
 
 end
 
@@ -112,42 +112,42 @@ function plot_compare_stress(sol_bsnq, sol_pm, iz)
     nexttile(1);  plot_var = sol_bsnq.szz(:,:,iz);
     ax_prop.title = 'Szz';
     ax_prop.cmax = max(abs(plot_var), [], 'all') / cb_clip;
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(4);  plot_var = sol_pm.szz(:,:,iz);
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(2);  plot_var = sol_bsnq.sxx(:,:,iz);
     ax_prop.title = 'Sxx';
     ax_prop.cmax = max(abs(plot_var), [], 'all') / cb_clip;
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(5);  plot_var = sol_pm.sxx(:,:,iz);
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(3);  plot_var = sol_bsnq.syy(:,:,iz);
     ax_prop.title = 'Syy';
     ax_prop.cmax = max(abs(plot_var), [], 'all') / cb_clip;
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(6);  plot_var = sol_pm.syy(:,:,iz);
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     %%% Difference of normal stress %%%
     nexttile(7);  plot_var = sol_bsnq.szz(:,:,iz) - sol_pm.szz(:,:,iz);
     ax_prop.title = 'Diff. (Szz)';
     ax_prop.cmax = max(abs(plot_var), [], 'all');
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(8);  plot_var = sol_bsnq.sxx(:,:,iz) - sol_pm.sxx(:,:,iz);
     ax_prop.title = 'Diff. (Sxx)';
     ax_prop.cmax = max(abs(plot_var), [], 'all');
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(9);  plot_var = sol_bsnq.syy(:,:,iz) - sol_pm.syy(:,:,iz);
     ax_prop.title = 'Diff. (Syy)';
     ax_prop.cmax = max(abs(plot_var), [], 'all');
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     % Make plots
     figure('Name', 'Shear Stress', 'Position', [0, 0, screen(3)*3/4, screen(4)]);
@@ -158,41 +158,41 @@ function plot_compare_stress(sol_bsnq, sol_pm, iz)
     nexttile(1);  plot_var = sol_bsnq.sxz(:,:,iz);
     ax_prop.title = 'Sxz';
     ax_prop.cmax = max(abs(plot_var), [], 'all') / cb_clip;
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(4);  plot_var = sol_pm.sxz(:,:,iz);
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(2);  plot_var = sol_bsnq.syz(:,:,iz);
     ax_prop.title = 'Syz';
     ax_prop.cmax = max(abs(plot_var), [], 'all') / cb_clip;
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(5);  plot_var = sol_pm.syz(:,:,iz);
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(3);  plot_var = sol_bsnq.sxy(:,:,iz);
     ax_prop.title = 'Sxy';
     ax_prop.cmax = max(abs(plot_var), [], 'all') / cb_clip;
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(6);  plot_var = sol_pm.sxy(:,:,iz);
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     %%% Difference of stress %%%
     nexttile(7);  plot_var = sol_bsnq.sxz(:,:,iz) - sol_pm.sxz(:,:,iz);
     ax_prop.title = 'Diff. (Sxz)';
     ax_prop.cmax = max(abs(plot_var), [], 'all');
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(8);  plot_var = sol_bsnq.syz(:,:,iz) - sol_pm.syz(:,:,iz);
     ax_prop.title = 'Diff. (Syz)';
     ax_prop.cmax = max(abs(plot_var), [], 'all');
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
     
     nexttile(9);  plot_var = sol_bsnq.sxy(:,:,iz) - sol_pm.sxy(:,:,iz);
     ax_prop.title = 'Diff. (Sxy)';
     ax_prop.cmax = max(abs(plot_var), [], 'all');
-    plot_2d(x, y, plot_var', ax_prop);
+    plot_2d(x, y, plot_var, ax_prop);
 
 end

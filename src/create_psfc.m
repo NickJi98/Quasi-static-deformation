@@ -7,7 +7,7 @@ function data_struct = create_psfc(test_case, mesh, param)
     try
         yh = (0:mesh.Ny-1) .* mesh.dy;
     catch
-        yh = xh';
+        yh = xh';   % If y not provided, consider square domain
     end
     data_struct.xh = xh;  data_struct.yh = yh;
 
@@ -21,13 +21,15 @@ function data_struct = create_psfc(test_case, mesh, param)
         
         % Wave snapshot
         case 2
-            [pp, wavelen] = period_psfc(xh, yh, mesh, param);
-            data_struct.wavelen = wavelen;
+            [pp, time, wavelen, wavespd] = period_psfc(xh, yh, mesh, param);
+            data_struct.time = time;
+            data_struct.wavelen = wavelen;  data_struct.wavespd = wavespd;
 
         % CM1 snapshot
         case 3
-            [pp, xh] = cm1_psfc();
-            data_struct.xh = xh;  data_struct.yh = xh;
+            [pp, xh, time] = cm1_psfc();
+            data_struct.xh = xh;  data_struct.yh = xh';
+            data_struct.time = time;
 
         % White spectrum
         case 4
@@ -56,7 +58,7 @@ end
 
 %% Function: Periodic load
 
-function [pp, wavelen] = period_psfc(xh, yh, mesh, param)
+function [pp, time, wavelen, wavespd] = period_psfc(xh, yh, mesh, param)
 
     % Mesh wavenumber (kx, ky: rad/km)
     kx = 2*pi / (mesh.Nx * mesh.dx);
@@ -66,30 +68,39 @@ function [pp, wavelen] = period_psfc(xh, yh, mesh, param)
         ky = kx;
     end
 
-    % Parameters (amp: Pa, kw: rad/km)
+    % Time mesh (t: s, two cycles)
+    time = linspace(0, 2/param.fw, 16);
+
+    % Parameters (amp: Pa, kw: rad/km, omega: rad/s)
     amp = param.amp;
     kw_x = param.Nw_x * kx;  kw_y = param.Nw_y * ky;
     kw = sqrt(kw_x^2 + kw_y^2);
+    omega = 2*pi * param.fw;
 
     % Gaussian source
-    pp = amp .* cos(kw_x.*xh + kw_y.*yh);
+    pp = amp .* cos(kw_x.*xh + kw_y.*yh - ...
+        omega.*reshape(time, [1,1,length(time)]));
 
-    % Wavelength (km)
-    wavelen = 2*pi/kw;
+    % Wavelength (km) & wave speed (km/s)
+    wavelen = 2*pi/kw;  wavespd = wavelen * param.fw;
 
 end
 
 %% Function: Example CM1 surface pressure
 
-function [pp, xh] = cm1_psfc()
+function [pp, xh, time] = cm1_psfc()
 
     % CM1 output file
-    cm1_file = './my_data/cm1out.nc';
+    src_dir = fileparts(mfilename('fullpath'));
+    cm1_file = fullfile(src_dir, '..', 'data', 'cm1out.nc');
 
-    % Read one CM1 output snapshot
+    % Read CM1 output (30 frames)
     xh = double(ncread(cm1_file, 'xh'));
-    pp = double(squeeze(ncread(cm1_file, 'psfc', [1,1,900], [Inf,Inf,1])));
-    pp = pp - mean(pp, "all");
+    pp = double(squeeze(ncread(cm1_file, 'psfc', [1,1,900], [Inf,Inf,30])));
+    time = ncread(cm1_file, 'time', 900, 30);
+
+    % Remove spatial mean at each time
+    pp = pp - mean(pp, [1,2]);
 
 end
 

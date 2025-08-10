@@ -3,10 +3,10 @@
 % Return output vectors at different depths specified by zq
 % Output at surface z = 0 is always recorded
 
-function output = solve_ds(src, elast_prop, zq)
+function output = solve_ds(src, elast_prop)
 
     %%% Insert depth query points into layered model %%%
-    model_prop = insert_query_points(elast_prop, zq);
+    model_prop = insert_query_points(elast_prop, src.zq);
 
     %%% Constant values %%%
     % Number of layers (INCLUDE halfspace)

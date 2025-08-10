@@ -2,18 +2,22 @@
 
 % Example workflow for a layered medium
 
-addpath('./my_func', './my_data');
+% Add modeling functions
+addpath('./src', './data');
+
+% Parallel environment
+% parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')));
 
 %% Example pressure source
 
-% Unit: Pa, positive for pushing downward
+% Unit: Pa, positive for downward normal traction
 
 % Mesh information [km]
-mesh.Nx = 256;  mesh.dx = 0.02;
-mesh.Ny = 256;  mesh.dy = 0.02;
+mesh.Nx = 128;  mesh.dx = 0.04;
+mesh.Ny = 128;  mesh.dy = 0.04;
 
 % Case 1: Gaussian load (param: amp, standard deviation, Gaussian center)
-% Case 2: Single Fourier mode (param: amp, kx, ky)
+% Case 2: Single Fourier mode (param: amp, kx, ky, f)
 % Case 3: Turbulent pressure field from Cloud Model 1
 % Case 4: Delta load (white spectrum)
 example_case = 2;
@@ -26,8 +30,10 @@ switch example_case
         param.x0 = mesh.Nx*mesh.dx/2;  param.y0 = mesh.Ny*mesh.dy/2;
 
     case 2
-        % Parameters (amp: Pa, Nw: integer number of cycles)
-        param.amp = 1;  param.Nw_x = 12;  param.Nw_y = 10;
+        % Parameters (amp: Pa, Nw: integer number of cycles, fw: Hz)
+        param.amp = 1;
+        param.Nw_x = 10;  param.Nw_y = 12;
+        param.fw = 0.1;
 
     case {3, 4}
         param = [];
@@ -39,7 +45,10 @@ src = create_psfc(example_case, mesh, param);
 % Pressure source src is a struct with following fields:
 %   xh: x-axis grid point (dim: Nx *  1)
 %   yh: y-axis grid point (dim: 1  * Ny)
-%   pp: surface pressure  (dim: Nx * Ny)
+%   time: time samples    (dim: Nt, optional)
+%   pp: surface pressure  (dim: Nx * Ny  or  Nx * Ny * Nt)
+
+% Only Case 2 & 3 are time dependent
 
 %% Example elastic structure
 
@@ -47,7 +56,7 @@ src = create_psfc(example_case, mesh, param);
 % Units: g/cm^3, km/s, km/s, km
 
 % Read from file
-% elast_prop = readmatrix('./my_data/vel_model.csv', 'NumHeaderLines', 1);
+% elast_prop = readmatrix('./data/vel_model.csv', 'NumHeaderLines', 1);
 
 % Manually create model
 elast_prop = [1.6, 1.45, 0.27, 0.2; ...
@@ -72,32 +81,43 @@ disp(array2table(elast_prop, ...
 
 %% Seismic modeling (Layered medium)
 
-% Depth query points [km]
-mesh.Nz = 11;  mesh.dz = 0.1;  zq = (0:mesh.Nz-1)' .* mesh.dz;
+% Optional: Depth query points [km]
+src.depth_query = 1;
+Nz = 5;  dz = 0.1;  src.zq = (0:Nz-1)' .* dz;
 
-% Solve displacement-stress vector toward the surface
-ds_pm = solve_ds(src, elast_prop, zq);
+% Optional: Output stress fields
+src.include_stress = 1;
 
-% Evaluate coefficients at the surface
-coeff_pm = solve_coeff(src, ds_pm);
-
-% Numerical solution
-sol_pm = calc_layer(ds_pm, coeff_pm, 'xyz', true);
+% Quasi-static modeling result
+[sol_pm, ~] = qs_model(src, elast_prop);
 
 %% 2D plot on a horizontal plane
 
 % Depth index (ind_z = 1 for surface z = 0)
-ind_z = 11;  fprintf('Depth: %g km\n', sol_pm.z(ind_z));
+ind_z = 2;
+if length(sol_pm.zq) < ind_z
+    ind_z = length(sol_pm.zq);
+end
+fprintf('Depth: %g km\n', sol_pm.zq(ind_z));
+
+% Time index
+ind_t = 3;
+if isfield(sol_pm, 'time')
+    fprintf('Time: %g s\n', sol_pm.time(ind_t));
+else
+    ind_t = 1;
+    fprintf('Static modeling, set ind_t = 1\n');
+end
 
 % Plot input pressure
 % Positive for compression, opposite to stress convention!
-load('rwb_cb.mat', 'mcolor');  ax_prop.cmap = flip(mcolor);
+load('rwb_cb.mat', 'mcolor');  ax_prop.cmap = mcolor;
 ax_prop.clabel = 'Pressure (Pa)';  ax_prop.title = 'Surface Pressure';
 ax_prop.cmax = max(abs(src.pp), [], 'all');
-plot_2d(src.xh, src.yh, src.pp', ax_prop);
+plot_2d(src.xh, src.yh, src.pp(:,:,1), ax_prop);
 
 % Plot displacement components
-plot_result_2d(sol_pm, 'disp', ind_z);
+plot_comps_2d(sol_pm, 'disp', [ind_z, ind_t]);
 
 % Plot stress components
-plot_result_2d(sol_pm, 'stress', ind_z);
+plot_comps_2d(sol_pm, 'stress', [ind_z, ind_t]);
