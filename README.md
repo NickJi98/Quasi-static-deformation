@@ -23,13 +23,12 @@ This repository contains MATLAB scripts and functions for modeling the deformati
 ## Repository Structure
 
 ### 1. Scripts
-- **`test_halfspace_xyz.m`** — Benchmark against Boussinesq solution (point load over elastic halfspace)
-- **`main_example.m`** — Example workflow and inputs
+- **`main_example.m`** — Example workflow that illustrates the usage of functions
+- **`test_Boussinesq.m`, `test_Sorrells.m`** — Benchmark for Boussinesq and Sorrells problems (point load and pressure wave applied at the surface of elastic halfspace)
 
 ### 2. MATLAB Functions (`./src`)
 - **`solve_ds.m`**, **`calc_layer.m`** — Core propagator matrix method
 - **`create_psfc.m`** — Example surface pressure loading (Gaussian, pressure wave, turbulent pressure, Delta load)
-- **Plotting:** `plot_2d.m`, `plot_comps_2d.m`, `plot_compare_2d.m`
 
 ### 3. Data (`./data`)
 - **`rwb_cb.mat`** — Red-white-blue colorbar  

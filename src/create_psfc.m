@@ -21,9 +21,10 @@ function data_struct = create_psfc(test_case, mesh, param)
         
         % Wave snapshot
         case 2
-            [pp, time, wavelen, wavespd] = period_psfc(xh, yh, mesh, param);
-            data_struct.time = time;
+            [pp, time, wavelen, wavespd, waveaz] = period_psfc(xh, yh, mesh, param);
+            data_struct.time = time;  data_struct.amp = param.amp;
             data_struct.wavelen = wavelen;  data_struct.wavespd = wavespd;
+            data_struct.waveaz = waveaz;
 
         % CM1 snapshot
         case 3
@@ -58,7 +59,7 @@ end
 
 %% Function: Periodic load
 
-function [pp, time, wavelen, wavespd] = period_psfc(xh, yh, mesh, param)
+function [pp, time, wavelen, wavespd, waveaz] = period_psfc(xh, yh, mesh, param)
 
     % Mesh wavenumber (kx, ky: rad/km)
     kx = 2*pi / (mesh.Nx * mesh.dx);
@@ -83,6 +84,7 @@ function [pp, time, wavelen, wavespd] = period_psfc(xh, yh, mesh, param)
 
     % Wavelength (km) & wave speed (km/s)
     wavelen = 2*pi/kw;  wavespd = wavelen * param.fw;
+    waveaz = atan(kw_y/kw_x);
 
 end
 

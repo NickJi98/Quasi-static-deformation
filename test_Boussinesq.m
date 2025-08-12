@@ -28,6 +28,7 @@ fprintf('Total force: %g N\n', sum(src.pp,'all')*mesh.dx*mesh.dy*1e6);
 %%% Halfspace properties (rho, vp, vs) %%%
 % Units: g/cm^3, km/s, km/s, km
 hs_prop = [1.6, 1.45, 0.27];
+% hs_prop = [2.7, 6.8, 4.0];
 
 % Top layer thickness for propagator matrix method
 % Unit: km, value between 0 to ~2 km

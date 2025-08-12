@@ -29,6 +29,7 @@ function output = calc_boussinesq(mesh, elast_prop, coord)
     %%% Boussinesq solution %%%
     % Vertical displacement: Positive for upward motion
     % Stress convention: Positive for tensile stress
+    % Normal load P = 1e6 N
 
     % Displacement [μm]
     ur =  1/(4*pi*mu) .* r_2d .* (zq./r_3d.^3 - (1-2*nu)./r_3d./(zq+r_3d));

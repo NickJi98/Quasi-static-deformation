@@ -45,12 +45,12 @@ function output = calc_layer(src, sol_ds)
     if stress_flag
         sxx = zeros(Nx,Ny,Nz,Nt);  syy = zeros(Nx,Ny,Nz,Nt);  szz = zeros(Nx,Ny,Nz,Nt);
         sxy = zeros(Nx,Ny,Nz,Nt);  sxz = zeros(Nx,Ny,Nz,Nt);  syz = zeros(Nx,Ny,Nz,Nt);
-        
-        % Elastic properties for calculating stress
-        prop = sol_ds.prop;
-        lambda = reshape(prop(:, 1).*prop(:, 2).^2, [1,1,Nz]);
-        mu = reshape(prop(:, 1).*prop(:, 3).^2, [1,1,Nz]);
     end
+
+    % Elastic properties for calculating stress
+    prop = sol_ds.prop;
+    lambda = reshape(prop(:, 1).*prop(:, 2).^2, [1,1,Nz]);
+    mu = reshape(prop(:, 1).*prop(:, 3).^2, [1,1,Nz]);
 
     parfor it = 1:Nt
         % Vector of the linear system (pagewise)
