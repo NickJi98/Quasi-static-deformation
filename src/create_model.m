@@ -5,14 +5,28 @@
 % thickness cuts the error by four. Sampling at the layer top is only
 % first-order, and for the same number of layers is far less accurate.
 
+% This is for CONTINUOUS profiles. A model with genuine interfaces is better
+% written as elast_prop directly, so that a node sits exactly on each boundary:
+% that is exact and costs nothing, whereas discretizing a step here leaves the
+% interface misplaced by up to one layer thickness unless it happens to land on
+% a node. For a mixed model, call this once per gradient zone and stack the
+% blocks, so every real interface still gets its own node.
+
 % Input profile is either a struct of function handles (rho, vp, vs) of
 % depth [km], or a matrix [depth, rho, vp, vs] to be interpolated.
 % H is the depth of the base of the profile [km], below which the halfspace
 % lies. Nlayer is the number of finite layers, so the output has Nlayer+1 rows.
 
 % Optional param fields:
-%   grading   Layer interfaces at H*(j/Nlayer)^grading, so 1 gives uniform
-%             layers and larger values thin them toward the surface
+%   grading   Layer interfaces at H*(j/Nlayer)^grading. This redistributes a
+%             fixed number of layers, it does not change how many there are.
+%             1 gives uniform layers, larger values thin them toward the
+%             surface. Worth using when the profile is steepest near the
+%             surface, as shallow velocity profiles usually are: for
+%             vs ~ z^0.3 a uniform model converges only as Nlayer^-1.3, while
+%             grading = 3 restores second order and is 20 to 80 times more
+%             accurate at the same layer count. For a near-linear profile it
+%             makes little difference, so the default is 1.
 %   halfspace [rho vp vs] of the bottom halfspace, default is profile at H
 %   method    Interpolation method for a tabulated profile, default 'pchip'
 
