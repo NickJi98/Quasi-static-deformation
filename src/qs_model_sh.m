@@ -16,9 +16,8 @@ function [sol_pm, ds_pm] = qs_model_sh(src, elast_prop)
     ds_pm = solve_ds_sh(src, elast_prop);
 
     % For static loading, add the third axis
-    if ismatrix(src.tx)
-        src.tx = src.tx(:,:,1);  src.ty = src.ty(:,:,1);
-    end
+    if ismatrix(src.tx);  src.tx = src.tx(:,:,1);  end
+    if ismatrix(src.ty);  src.ty = src.ty(:,:,1);  end
 
     % Numerical solution
     sol_pm = calc_layer_sh(src, ds_pm);
@@ -28,7 +27,9 @@ function [sol_pm, ds_pm] = qs_model_sh(src, elast_prop)
     % (For stress component, positive for tensile direction)
 
     % Add time info to output
-    if size(src.tx, 3) > 1 || size(src.ty, 3) > 1
+    % (a static load is just a time axis with one sample, so the time vector is
+    %  carried through whenever it is supplied, independent of the load length)
+    if isfield(src, 'time')
         sol_pm.time = src.time;
     end
 end

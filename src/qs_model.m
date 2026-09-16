@@ -30,7 +30,9 @@ function [sol_pm, ds_pm] = qs_model(src, elast_prop)
     sol_pm.uz = -sol_pm.uz;
 
     % Add time info to output
-    if size(src.pp, 3) > 1 || size(src.tx, 3) > 1 || size(src.ty, 3) > 1
+    % (a static load is just a time axis with one sample, so the time vector is
+    %  carried through whenever it is supplied, independent of the load length)
+    if isfield(src, 'time')
         sol_pm.time = src.time;
     end
 end

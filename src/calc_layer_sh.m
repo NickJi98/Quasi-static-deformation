@@ -19,7 +19,7 @@ function output = calc_layer_sh(src, sol_ds)
     dsh_xy = zeros(Nx,Ny,Nz,2);
 
     % Interpolation
-    parfor j = 1:2
+    for j = 1:2
         for iz = 1:Nz
             dsh_xy(:,:,iz,j) = interp1(kr, dsh(:,j,iz), Kr, 'linear', 0);
         end
@@ -51,15 +51,22 @@ function output = calc_layer_sh(src, sol_ds)
     prop = sol_ds.prop;
     mu = reshape(prop(:, 1).*prop(:, 3).^2, [1,1,Nz]);
 
+    % Reciprocal of the (time-independent) SH denominator, precomputed once:
+    % V2 = c3 * dsh(2) at the surface, so c3 = V2 / dsh(2). Only the right-hand
+    % side changes with time, which matters for quasi-static runs with many steps.
+    ivh = 1 ./ dsh_xy(:,:,1,2);
+
+    % Drop wavenumbers with no solution: k = 0 (REMOVED, as before) and any
+    % singular entry, so they contribute zero instead of spreading NaN over the
+    % whole field through the inverse FFT
+    ivh(~isfinite(ivh)) = 0;  ivh(1,1) = 0;
+
     % Time samples of the traction load
     Nt_ts = size(fk_V2s, 3);
 
-    parfor it = 1:Nt
+    for it = 1:Nt
         % Coefficient of the SH system (single homogeneous solution)
-        c = fk_V2s(:,:,min(it,Nt_ts)) ./ dsh_xy(:,:,1,2);
-
-        % Remove NaN (REMOVE k = 0 component)
-        c(1,1) = 0;
+        c = fk_V2s(:,:,min(it,Nt_ts)) .* ivh;
 
         % Surface displacement
         fk_V1 = c .* dsh_xy(:,:,:,1);

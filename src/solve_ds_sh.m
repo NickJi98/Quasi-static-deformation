@@ -19,9 +19,9 @@ function output = solve_ds_sh(src, elast_prop)
     % Unit: GPa = 1e9 Pa
     mu = model_prop(:, 1) .* model_prop(:, 3).^2;
 
-    % Layer thickness
+    % Layer thickness & depth of layer top
     % Unit: km
-    h = model_prop(:, 4);
+    h = model_prop(:, 4);  ztop = model_prop(:, 5);
 
     %%% Mesh grid %%%
     % Spatial axes [km]
@@ -35,47 +35,68 @@ function output = solve_ds_sh(src, elast_prop)
 
     % Radial wavenumber samples [rad/km]
     Nr = max(Nx, Ny) * 10;  dr = min(dx, dy) / sqrt(3);
-    % kr = 2*pi .* [1:Nr/2 (-Nr/2+1):-1]' ./ (Nr*dr);
     kr = 2*pi .* (1:Nr/2)' ./ (Nr*dr);
+
+    %%% Overflow guard %%%
+    % See solve_ds.m: the upward-propagated solution grows like exp(k*z) and
+    % overflows past k*z ~ 709, which would silently turn every field into NaN.
+    if max(kr) * ztop(Nlayer) > 700
+        error('solve_ds_sh:tooDeep', ...
+            ['Model is too deep for this grid: k_max*depth = %.0f exceeds 700 ' ...
+             '(k_max = %.1f rad/km from dx = %g km, model depth = %g km).\n' ...
+             'Coarsen the grid, or make the layered model shallower -- a mode ' ...
+             'of wavenumber k cannot sense structure deeper than about 1/k, so ' ...
+             'truncating the model below %.3g km changes nothing physically.'], ...
+            max(kr)*ztop(Nlayer), max(kr), min(dx,dy), ztop(Nlayer), 700/max(kr));
+    end
 
     %%% Initial homogeneous solution %%%
     mu0 = mu(end);
 
-    dsh = [1/mu0 ./ kr,     ones(size(kr))];
+    dshj = [1/mu0 ./ kr,   ones(size(kr))]';
 
     %%% Propagator method %%%
     % Initialize arrays
-    dsh_surf = zeros([size(dsh) Nlayer]);
+    Nk = length(kr);
+    dsh_surf = zeros(Nk, 2, Nlayer);
 
-    % Outer loop over non-zero wavenumber
-    parfor j = 1:length(kr)
+    % Loop over layers (including halfspace with h(end) = 0), vectorized over
+    % wavenumber: the closed-form propagator below replaces a per-wavenumber expm
+    for i = Nlayer:-1:1
 
-        % Wavenumber for current loop
-        kj = kr(j);
+        % Propagator matrix (closed form of expm(B*h))
+        Pk = sh_propagator(kr, h(i), mu(i));
 
-        % Vector at current wavenumber
-        dshj = dsh(j, :)';
+        dshj = squeeze(pagemtimes(Pk, reshape(dshj, 2, 1, Nk)));
 
-        % Inner loop over layers (including halfspace with h(end) = 0)
-        for i = Nlayer:-1:1
-
-            % ODE system
-            Ak = [0, 1/mu(i); ...
-                mu(i)*kj^2, 0];
-
-            % Propagator matrix
-            dshj = expm(Ak*h(i)) * dshj;
-
-            % Record output
-            dsh_surf(j,:,i) = dshj;
-        end
+        % Record output
+        dsh_surf(:,:,i) = dshj';
     end
+
 
     %%% Output struct %%%
     output.xh = src.xh;  output.yh = src.yh;  output.dx = dx;  output.dy = dy;
     output.kx = kx;  output.ky = ky;  output.kr = kr;
     output.zq = model_prop(irec, 5);  output.prop = model_prop(irec, 1:3);
     output.dsh = dsh_surf(:,:,irec);
+end
+
+%% Function: Closed-form propagator matrix for the SH system
+
+% Exact expression for expm(B*h) with B as in the SH section of the
+% documentation. Returns a 2 x 2 x Nk array for the wavenumber vector k; the
+% thickness h may be a scalar or carry one value per wavenumber.
+
+function Pk = sh_propagator(k, h, mu)
+
+    k = k(:);  Nk = length(k);
+
+    % cosh & sinh of k*h
+    x = k.*h;  ch = cosh(x);  sh = sinh(x);
+
+    Pk = zeros(2, 2, Nk);
+    Pk(1,1,:) = ch;               Pk(1,2,:) = sh ./ (mu.*k);
+    Pk(2,1,:) = mu.*k .* sh;      Pk(2,2,:) = ch;
 end
 
 %% Function: Insert depth query points into layered model

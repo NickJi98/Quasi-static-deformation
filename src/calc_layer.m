@@ -19,7 +19,7 @@ function output = calc_layer(src, sol_ds)
     ds1_xy = zeros(Nx,Ny,Nz,4);  ds2_xy = zeros(Nx,Ny,Nz,4);
     
     % Interpolation
-    parfor j = 1:4
+    for j = 1:4
         for iz = 1:Nz
             ds1_xy(:,:,iz,j) = interp1(kr, ds1(:,j,iz), Kr, 'linear', 0);
             ds2_xy(:,:,iz,j) = interp1(kr, ds2(:,j,iz), Kr, 'linear', 0);
@@ -44,8 +44,22 @@ function output = calc_layer(src, sol_ds)
     % Surface value of U3 from in-plane traction (-k*U3 = i*kx*sxz + i*ky*syz)
     fk_U3s = -1j .* (kx.*fk_tx + ky.*fk_ty) ./ Kr;
 
-    % Matrix of the linear system (pagewise)
-    A2 = cat(4, squeeze(ds1_xy(:,:,1,3:4)), squeeze(ds2_xy(:,:,1,3:4)));
+    % Inverse of the linear system, precomputed once.
+    % The system [ds1 ds2] * [c1; c2] = [U3; U4] at the surface depends only on
+    % the elastic model, not on time, so for quasi-static modelling with many
+    % time samples it is inverted here rather than re-solved at every step.
+    a11 = ds1_xy(:,:,1,3);  a12 = ds2_xy(:,:,1,3);
+    a21 = ds1_xy(:,:,1,4);  a22 = ds2_xy(:,:,1,4);
+    dtm = a11.*a22 - a12.*a21;
+    iv11 =  a22./dtm;  iv12 = -a12./dtm;
+    iv21 = -a21./dtm;  iv22 =  a11./dtm;
+
+    % Drop wavenumbers with no solution: k = 0 (REMOVED, as before) and any
+    % singular entry, so they contribute zero instead of spreading NaN over the
+    % whole field through the inverse FFT
+    ibad = ~(isfinite(iv11) & isfinite(iv12) & isfinite(iv21) & isfinite(iv22));
+    ibad(1,1) = true;
+    iv11(ibad) = 0;  iv12(ibad) = 0;  iv21(ibad) = 0;  iv22(ibad) = 0;
 
     % Initialize output arrays
     uz = zeros(Nx,Ny,Nz,Nt);  ux = zeros(Nx,Ny,Nz,Nt);  uy = zeros(Nx,Ny,Nz,Nt);
@@ -56,27 +70,22 @@ function output = calc_layer(src, sol_ds)
 
     % Elastic properties for calculating stress
     prop = sol_ds.prop;
-    lambda = reshape(prop(:, 1).*prop(:, 2).^2, [1,1,Nz]);
     mu = reshape(prop(:, 1).*prop(:, 3).^2, [1,1,Nz]);
+    lambda = reshape(prop(:, 1).*prop(:, 2).^2, [1,1,Nz]) - 2.*mu;
 
     % Time samples of each load (allow static load with time-dependent load)
     Nt_pp = size(fk_pp, 3);  Nt_ts = size(fk_U3s, 3);
 
-    parfor it = 1:Nt
-        % Vector of the linear system (pagewise)
-        b2 = zeros(1, Nx, Ny, 2);
-        b2(1,:,:,:) = cat(3, fk_U3s(:,:,min(it,Nt_ts)), fk_pp(:,:,min(it,Nt_pp)));
+    for it = 1:Nt
+        % Right-hand side at this time sample
+        b1 = fk_U3s(:,:,min(it,Nt_ts));  b2 = fk_pp(:,:,min(it,Nt_pp));
 
-        % Solve linear system (pagewise)
-        c = pagemldivide(permute(A2, [3,4,1,2]), permute(b2, [4,1,2,3]));
-        c = squeeze(permute(c, [3,4,1,2]));
-
-        % Remove NaN (REMOVE k = 0 component)
-        c(1,1,:) = 0;
+        % Coefficients of the two homogeneous solutions
+        c1 = iv11.*b1 + iv12.*b2;   c2 = iv21.*b1 + iv22.*b2;
 
         % Surface displacement
-        fk_uz = c(:,:,1) .* ds1_xy(:,:,:,2) + c(:,:,2) .* ds2_xy(:,:,:,2);
-        fk_U1 = c(:,:,1) .* ds1_xy(:,:,:,1) + c(:,:,2) .* ds2_xy(:,:,:,1);
+        fk_uz = c1 .* ds1_xy(:,:,:,2) + c2 .* ds2_xy(:,:,:,2);
+        fk_U1 = c1 .* ds1_xy(:,:,:,1) + c2 .* ds2_xy(:,:,:,1);
 
         % Solve horizontal displacement
         fk_ux = 1j.*fk_U1.*kx./Kr;  fk_uy = 1j.*fk_U1.*ky./Kr;
@@ -87,8 +96,8 @@ function output = calc_layer(src, sol_ds)
 
         if stress_flag
             % Surface stress
-            fk_szz = c(:,:,1) .* ds1_xy(:,:,:,4) + c(:,:,2) .* ds2_xy(:,:,:,4);
-            fk_U3  = c(:,:,1) .* ds1_xy(:,:,:,3) + c(:,:,2) .* ds2_xy(:,:,:,3);
+            fk_szz = c1 .* ds1_xy(:,:,:,4) + c2 .* ds2_xy(:,:,:,4);
+            fk_U3  = c1 .* ds1_xy(:,:,:,3) + c2 .* ds2_xy(:,:,:,3);
 
             % Solve shear stress
             fk_sxz = 1j.*fk_U3.*kx./Kr;  fk_syz = 1j.*fk_U3.*ky./Kr;

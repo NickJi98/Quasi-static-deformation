@@ -19,10 +19,12 @@ The P-SV and SH systems are implemented as separate pipelines, so each can be us
 
 ## Requirements
 - MATLAB R202x or later
-- [Parallel Computing Toolbox](https://www.mathworks.com/products/parallel-computing.html) *(optional)*  
-  You can replace all `parfor` loops with `for` loops in:
-  - `solve_ds.m`, `calc_layer.m` (P-SV system)
-  - `solve_ds_sh.m`, `calc_layer_sh.m` (SH system)
+- No additional toolboxes required.  
+  The propagator loops are vectorized over wavenumber and the time loop is a
+  plain `for`; both were measured faster than the `parfor` versions they
+  replaced, so the Parallel Computing Toolbox is no longer needed. For a very
+  long time series on a many-core machine, changing `for it = 1:Nt` back to
+  `parfor it` in `calc_layer.m` / `calc_layer_sh.m` may pay off again.
 
 ---
 

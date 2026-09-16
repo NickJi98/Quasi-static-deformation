@@ -19,11 +19,10 @@ function output = solve_ds(src, elast_prop)
     % Unit: GPa = 1e9 Pa
     mu = model_prop(:, 1) .* model_prop(:, 3).^2;
     lambda = model_prop(:, 1) .* model_prop(:, 2).^2 - 2.*mu;
-    sigma = lambda + 2*mu;
 
-    % Layer thickness
+    % Layer thickness & depth of layer top
     % Unit: km
-    h = model_prop(:, 4);
+    h = model_prop(:, 4);  ztop = model_prop(:, 5);
 
     %%% Mesh grid %%%
     % Spatial axes [km]
@@ -37,55 +36,88 @@ function output = solve_ds(src, elast_prop)
 
     % Radial wavenumber samples [rad/km]
     Nr = max(Nx, Ny) * 10;  dr = min(dx, dy) / sqrt(3);
-    % kr = 2*pi .* [1:Nr/2 (-Nr/2+1):-1]' ./ (Nr*dr);
     kr = 2*pi .* (1:Nr/2)' ./ (Nr*dr);
+
+    %%% Overflow guard %%%
+    % The solution is propagated upward from the halfspace, so it grows like
+    % exp(k*z) and the propagator entries overflow once k*z exceeds ~709. Past
+    % that point every output field silently becomes NaN, so refuse instead.
+    % k_max is set by the grid spacing, hence the suggested remedies below.
+    if max(kr) * ztop(Nlayer) > 700
+        error('solve_ds:tooDeep', ...
+            ['Model is too deep for this grid: k_max*depth = %.0f exceeds 700 ' ...
+             '(k_max = %.1f rad/km from dx = %g km, model depth = %g km).\n' ...
+             'Coarsen the grid, or make the layered model shallower -- a mode ' ...
+             'of wavenumber k cannot sense structure deeper than about 1/k, so ' ...
+             'truncating the model below %.3g km changes nothing physically.'], ...
+            max(kr)*ztop(Nlayer), max(kr), min(dx,dy), ztop(Nlayer), 700/max(kr));
+    end
 
     %%% Initial homogeneous solution %%%
     lambda0 = lambda(end);  mu0 = mu(end);
-    
-    ds1 = [1/(2*mu0) ./ kr,     1/(2*mu0) ./ abs(kr), ...
-           sign(kr),            ones(size(kr))];
-    
-    ds2 = [sign(kr).*(lambda0+2*mu0)./ kr.^2 ./(2*mu0*(lambda0+mu0)), ...
-           -1./ kr.^2 ./(2*(lambda0+mu0)), ...
-           1 ./ kr,     zeros(size(kr))];
+
+    ds1j = [1/(2*mu0) ./ kr,   1/(2*mu0) ./ kr, ...
+            ones(size(kr)),    ones(size(kr))]';
+
+    ds2j = [(lambda0+2*mu0) ./ kr.^2 ./(2*mu0*(lambda0+mu0)), ...
+            -1 ./ kr.^2 ./ (2*(lambda0+mu0)), ...
+            1 ./ kr,           zeros(size(kr))]';
 
     %%% Propagator method %%%
     % Initialize arrays
-    ds1_surf = zeros([size(ds1) Nlayer]);
-    ds2_surf = zeros([size(ds2) Nlayer]);
-    
-    % Outer loop over non-zero wavenumber
-    parfor j = 1:length(kr)
-    
-        % Wavenumber for current loop
-        kj = kr(j);
-    
-        % Vector at current wavenumber
-        ds1j = ds1(j, :)';  ds2j = ds2(j, :)';
-        
-        % Inner loop over layers (including halfspace with h(end) = 0)
-        for i = Nlayer:-1:1
-            
-            % ODE system
-            Ak = [0, -kj, 1/mu(i), 0; ...
-                kj*lambda(i)/sigma(i), 0, 0, 1/sigma(i); ...
-                4*mu(i)*(lambda(i)+mu(i))/sigma(i)*kj^2, 0, 0, -kj*lambda(i)/sigma(i); ...
-                0, 0, kj, 0];
-    
-            % Propagator matrix
-            ds1j = expm(Ak*h(i)) * ds1j;  ds2j = expm(Ak*h(i)) * ds2j;
+    Nk = length(kr);
+    ds1_surf = zeros(Nk, 4, Nlayer);
+    ds2_surf = zeros(Nk, 4, Nlayer);
 
-            % Record output
-            ds1_surf(j,:,i) = ds1j;  ds2_surf(j,:,i) = ds2j;
-        end
+    % Loop over layers (including halfspace with h(end) = 0), vectorized over
+    % wavenumber: the closed-form propagator below replaces a per-wavenumber expm
+    for i = Nlayer:-1:1
+
+        % Propagator matrix (closed form of expm(A*h), see psv_propagator)
+        Pk = psv_propagator(kr, h(i), lambda(i), mu(i));
+
+        ds1j = squeeze(pagemtimes(Pk, reshape(ds1j, 4, 1, Nk)));
+        ds2j = squeeze(pagemtimes(Pk, reshape(ds2j, 4, 1, Nk)));
+
+        % Record output
+        ds1_surf(:,:,i) = ds1j';  ds2_surf(:,:,i) = ds2j';
     end
+
 
     %%% Output struct %%%
     output.xh = src.xh;  output.yh = src.yh;  output.dx = dx;  output.dy = dy;
     output.kx = kx;  output.ky = ky;  output.kr = kr;
     output.zq = model_prop(irec, 5);  output.prop = model_prop(irec, 1:3);
     output.ds1 = ds1_surf(:,:,irec);  output.ds2 = ds2_surf(:,:,irec);
+end
+
+%% Function: Closed-form propagator matrix for the P-SV system
+
+% Exact expression for expm(A*h) with A as in Eq. (1) of the documentation,
+% grouped in cosh/sinh so that nothing worse than cosh(k*h) can overflow.
+% Returns a 4 x 4 x Nk array for the column vector of wavenumbers k. The layer
+% thickness h may be a scalar or carry one value per wavenumber.
+
+function Pk = psv_propagator(k, h, lambda, mu)
+
+    k = k(:);  Nk = length(k);
+
+    % Dimensionless modulus ratios
+    sigma = lambda + 2*mu;
+    al = mu/sigma;  be = (lambda+mu)/sigma;  ga = (lambda+3*mu)/sigma;
+
+    % cosh & sinh of k*h
+    x = k.*h;  ch = cosh(x);  sh = sinh(x);  km2 = 2*k*mu;
+
+    Pk = zeros(4, 4, Nk);
+    Pk(1,1,:) =  ch + be*x.*sh;            Pk(1,2,:) = -(al*sh + be*x.*ch);
+    Pk(1,3,:) =  (ga*sh + be*x.*ch)./km2;  Pk(1,4,:) = -(be*x.*sh)./km2;
+    Pk(2,1,:) =  be*x.*ch - al*sh;         Pk(2,2,:) =  ch - be*x.*sh;
+    Pk(2,3,:) =  (be*x.*sh)./km2;          Pk(2,4,:) =  (ga*sh - be*x.*ch)./km2;
+    Pk(3,1,:) =  be*km2.*(sh + x.*ch);     Pk(3,2,:) = -be*km2.*(x.*sh);
+    Pk(3,3,:) =  ch + be*x.*sh;            Pk(3,4,:) =  al*sh - be*x.*ch;
+    Pk(4,1,:) =  be*km2.*(x.*sh);          Pk(4,2,:) =  be*km2.*(sh - x.*ch);
+    Pk(4,3,:) =  al*sh + be*x.*ch;         Pk(4,4,:) =  ch - be*x.*sh;
 end
 
 %% Function: Insert depth query points into layered model
