@@ -32,10 +32,17 @@ function output = calc_layer(src, sol_ds)
 
     %%% Solve linear system at each time %%%
     % Number of time steps
-    Nt = size(src.pp, 3);
+    Nt = max([size(src.pp, 3), size(src.tx, 3), size(src.ty, 3)]);
 
     % Normal traction (Positive for tensile)
     fk_pp = -fft(fft(src.pp,[],1),[],2) .* dx*dy;
+
+    % Horizontal traction (Positive along +x, +y direction)
+    fk_tx = fft(fft(src.tx,[],1),[],2) .* dx*dy;
+    fk_ty = fft(fft(src.ty,[],1),[],2) .* dx*dy;
+
+    % Surface value of U3 from in-plane traction (-k*U3 = i*kx*sxz + i*ky*syz)
+    fk_U3s = -1j .* (kx.*fk_tx + ky.*fk_ty) ./ Kr;
 
     % Matrix of the linear system (pagewise)
     A2 = cat(4, squeeze(ds1_xy(:,:,1,3:4)), squeeze(ds2_xy(:,:,1,3:4)));
@@ -52,10 +59,13 @@ function output = calc_layer(src, sol_ds)
     lambda = reshape(prop(:, 1).*prop(:, 2).^2, [1,1,Nz]);
     mu = reshape(prop(:, 1).*prop(:, 3).^2, [1,1,Nz]);
 
+    % Time samples of each load (allow static load with time-dependent load)
+    Nt_pp = size(fk_pp, 3);  Nt_ts = size(fk_U3s, 3);
+
     parfor it = 1:Nt
         % Vector of the linear system (pagewise)
         b2 = zeros(1, Nx, Ny, 2);
-        b2(1,:,:,:) = cat(3, zeros(Nx, Ny), fk_pp(:,:,it));
+        b2(1,:,:,:) = cat(3, fk_U3s(:,:,min(it,Nt_ts)), fk_pp(:,:,min(it,Nt_pp)));
 
         % Solve linear system (pagewise)
         c = pagemldivide(permute(A2, [3,4,1,2]), permute(b2, [4,1,2,3]));

@@ -1,5 +1,2 @@
-.DS_Store
-*.tmp
-*.swp
+data/cm1out.nc
 *.asv
-*.m~
