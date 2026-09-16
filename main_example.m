@@ -64,6 +64,13 @@ elast_prop = [1.6, 1.45, 0.27, 0.2; ...
               2.0, 2.1, 0.8, 0.6; ...
               2.2, 2.4, 0.9, 0];
 
+% Or discretize a continuous profile (midpoint-sampled, 2nd-order accurate).
+% Halve the layer thickness and the discretization error drops by four.
+% prof.rho = @(z) 1.6 + 0.6*z;  prof.vp = @(z) 1.45 + 0.95*z;
+% prof.vs  = @(z) 0.27 + 0.63*z;
+% elast_prop = create_model(prof, 1.0, 200);          % 200 layers over 1 km
+% elast_prop = create_model(tab,  1.0, 200);          % tab = [depth rho vp vs]
+
 % Print layered model
 Nlayer = size(elast_prop, 1) - 1;
 row_names = cellstr(num2str((1:Nlayer)'))';
