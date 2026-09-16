@@ -70,6 +70,7 @@ elast_prop = [1.6, 1.45, 0.27, 0.2; ...
 % prof.vs  = @(z) 0.27 + 0.63*z;
 % elast_prop = create_model(prof, 1.0, 200);          % 200 layers over 1 km
 % elast_prop = create_model(tab,  1.0, 200);          % tab = [depth rho vp vs]
+% param.grading = 2;  elast_prop = create_model(prof, 1.0, 200, param);
 
 % Print layered model
 Nlayer = size(elast_prop, 1) - 1;
